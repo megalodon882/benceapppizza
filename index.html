@@ -1,0 +1,260 @@
+<!doctype html>
+<html lang="hu">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mepper Pill V 2</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <div class="toast-container" id="toast-container" aria-live="polite" aria-atomic="true"></div>
+
+  <div class="color-change-modal" id="color-change-modal" hidden>
+    <div class="color-change-dialog" role="dialog" aria-modal="true" aria-labelledby="color-change-title">
+      <h2 id="color-change-title">SZÍN MÓDOSÍTÁSA</h2>
+      <p id="color-change-copy">Szeretnéd módosítani ennek a címnek a színét?</p>
+      <div class="color-change-actions" id="color-change-confirm-actions">
+        <button class="color-change-no" type="button" id="color-change-cancel">NEM</button>
+        <button class="color-change-yes" type="button" id="color-change-confirm">IGEN</button>
+      </div>
+    </div>
+  </div>
+
+  <main class="account-panel" id="account-panel">
+    <div class="panel-heading">
+      <h1>Mepper Pill 🍕</h1>
+      <p id="form-description">Hozd létre a fiókodat.</p>
+    </div>
+
+    <div class="mode-switch" role="group" aria-label="Fiók mód választása">
+      <button class="active" type="button" data-mode="register">Regisztráció</button>
+      <button type="button" data-mode="login">Bejelentkezés</button>
+    </div>
+
+    <form id="account-form">
+      <label id="username-field">
+        USERNAME
+        <input name="username" type="text" autocomplete="username" required>
+      </label>
+
+      <fieldset class="role-picker" id="role-field" aria-label="Szerepkör">
+        <label class="role-option selected">
+          <input type="radio" name="role" value="courier" checked>
+          Futár 🚗
+        </label>
+        <label class="role-option">
+          <input type="radio" name="role" value="manager">
+          Manager 🖥️
+        </label>
+      </fieldset>
+
+      <label>
+        EMAIL
+        <input name="email" type="email" autocomplete="email" required>
+      </label>
+
+      <label>
+        PASSWORD
+        <input name="password" type="password" autocomplete="new-password" required>
+      </label>
+
+      <button class="submit-button" type="submit" id="submit-button">Regisztráció</button>
+      <p class="feedback" id="feedback" aria-live="polite"></p>
+    </form>
+  </main>
+
+  <main class="app-panel" id="app-panel" hidden>
+    <header class="app-header">
+      <div class="brand-lockup">
+        <span class="brand-mark">🍕</span>
+        <h1>Mepper Pill</h1>
+      </div>
+      <div class="header-actions">
+        <span class="courier-badge" id="active-role-badge">🚗 FUTÁR</span>
+        <strong id="active-user">FUTÁR</strong>
+        <button class="logout-button" type="button" id="logout-button">KILÉPÉS</button>
+      </div>
+    </header>
+
+    <section class="manager-welcome" id="manager-welcome" hidden>
+      <span class="manager-eyebrow">VEZETŐI ÁTTEKINTÉS</span>
+      <h2>Jó munkát, <strong id="manager-name">Manager</strong>.</h2>
+      <p>Itt egy helyen látod a lezárt kiszállításokat és a napi bevételt.</p>
+    </section>
+
+    <section class="stats-grid" aria-label="Összesítés">
+      <div class="stat-card">
+        <span id="order-stat-label">📦 RENDELÉSEK</span>
+        <strong id="order-count">0</strong>
+      </div>
+      <div class="stat-card">
+        <span id="income-stat-label">💰 MAI BEVÉTEL</span>
+        <strong id="total-income">0,00 RSD</strong>
+      </div>
+    </section>
+
+    <div class="app-tabs" role="tablist" aria-label="App nézetek">
+      <button class="tab-button active" type="button" role="tab" aria-selected="true" data-tab="orders"><span id="orders-tab-label">📦 MEGRENDELÉSEK</span></button>
+      <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab="accounting"><span id="accounting-tab-label">💳 ELSZÁMOLÁS</span></button>
+    </div>
+
+    <section id="orders-view" class="app-view">
+      <h2 id="new-order-heading">📝 ÚJ MEGRENDELÉS</h2>
+      <form class="order-form" id="order-form" autocomplete="off" novalidate>
+        <label>
+          <span class="sr-only">Cím</span>
+          <input id="address-input" name="address" list="saved-addresses" type="text" placeholder="Válasszon meglévő címet vagy írjon be újat" autocomplete="off" spellcheck="false" required>
+          <datalist id="saved-addresses"></datalist>
+        </label>
+        <label>
+          <span class="sr-only">Telefonszám</span>
+          <input name="phone" type="tel" placeholder="Telefonszám (opcionális)">
+        </label>
+        <fieldset class="color-picker">
+          <legend class="sr-only">Rendelés színe</legend>
+          <label class="color-option">
+            <input type="radio" name="color" value="Fekete" checked>
+            <span class="color-dot black-dot"></span> FEKETE
+          </label>
+          <label class="color-option">
+            <input type="radio" name="color" value="Fehér">
+            <span class="color-dot white-dot"></span> FEHÉR
+          </label>
+        </fieldset>
+        <label>
+          <span class="sr-only">Rendelés részletei</span>
+          <textarea name="details" rows="2" placeholder="Megrendelés részletei (opcionális)"></textarea>
+        </label>
+        <label>
+          <span class="sr-only">Ár</span>
+          <input name="price" type="number" min="0" step="0.01" placeholder="Ár" required>
+        </label>
+        <button class="submit-button order-submit" type="submit">➕ MEGRENDELÉS HOZZÁADÁSA</button>
+      </form>
+
+      <div class="orders-heading">
+        <h2 id="orders-list-heading">📋 MAI MEGRENDELÉSEK</h2>
+        <span id="visible-order-count">0 találat</span>
+      </div>
+      <input class="search-input" id="order-search" type="search" placeholder="Megrendelések keresése cím alapján...">
+      <section class="manager-couriers" id="manager-couriers" hidden aria-label="Futárok összesítése">
+        <div class="manager-section-heading">
+          <h3>👥 FUTÁROK VÉGÖSSZEGE</h3>
+          <span id="manager-courier-count">0 futár</span>
+        </div>
+        <div class="manager-courier-list" id="manager-courier-list"></div>
+      </section>
+      <div class="filter-row" role="group" aria-label="Szűrés szín alapján">
+        <button class="filter-button active" type="button" data-filter="all">ÖSSZES</button>
+        <button class="filter-button" type="button" data-filter="Fekete"><span class="color-dot black-dot"></span> FEKETE</button>
+        <button class="filter-button" type="button" data-filter="Fehér"><span class="color-dot white-dot"></span> FEHÉR</button>
+      </div>
+      <div class="sort-row" role="group" aria-label="Rendezés">
+        <button class="sort-button active" type="button" data-sort="default">ALAP</button>
+        <button class="sort-button" type="button" data-sort="address-asc">A-Z</button>
+        <button class="sort-button" type="button" data-sort="address-desc">Z-A</button>
+        <button class="sort-button" type="button" data-sort="price-asc">ÁR ↑</button>
+        <button class="sort-button" type="button" data-sort="price-desc">ÁR ↓</button>
+      </div>
+      <div class="order-list" id="order-list"></div>
+      <div class="delete-all-wrap" id="delete-all-wrap">
+        <button class="delete-all-button" type="button" id="delete-all-button">ÖSSZES TÖRLÉSE</button>
+        <div class="delete-all-confirm" id="delete-all-confirm" hidden>
+          <label for="delete-all-input">A törlés megerősítéséhez írd be: IGEN</label>
+          <div class="delete-all-confirm-row">
+            <input id="delete-all-input" type="text" autocomplete="off" spellcheck="false" placeholder="IGEN">
+            <button class="delete-all-final" type="button" id="delete-all-final">TÖRLÉS</button>
+          </div>
+          <p class="delete-all-feedback" id="delete-all-feedback" aria-live="polite"></p>
+        </div>
+      </div>
+    </section>
+
+    <section id="accounting-view" class="app-view accounting-view" hidden>
+      <h2>ELSZÁMOLÁS</h2>
+      <input class="search-input accounting-search" id="accounting-search" type="search" placeholder="Cím keresése az elszámolásban...">
+      <p class="accounting-copy" id="accounting-copy">Jelöld ki a címeket, amiket biztos te vittél.</p>
+      <section class="manager-settlement" id="manager-settlement" hidden aria-label="Manager elszámolás">
+        <div class="manager-settlement-heading">
+          <div>
+            <span class="manager-eyebrow">VEZETŐI ELSZÁMOLÁS</span>
+            <h3>FUTÁROK ÉS MUNKÁSOK</h3>
+          </div>
+          <span id="manager-settlement-count">0 tétel</span>
+        </div>
+        <form class="manual-worker-form" id="manual-worker-form" novalidate>
+          <input name="name" type="text" placeholder="Munkás neve" required>
+          <input name="amount" type="number" min="0" step="0.01" placeholder="Összeg" required>
+          <button type="submit">+ MUNKÁS HOZZÁADÁSA</button>
+        </form>
+        <div class="manager-settlement-list" id="manager-settlement-list"></div>
+        <section class="daily-flow" aria-label="Napi folyam ellenőrzése">
+          <div class="daily-flow-heading">
+            <div>
+              <span class="manager-eyebrow">NAPI ELLENŐRZÉS</span>
+              <h3>NAPI FOLYAM</h3>
+            </div>
+            <span>BEVITT ÖSSZEG</span>
+          </div>
+          <input id="daily-flow-input" type="number" min="0" step="0.01" placeholder="Napi folyam összege">
+        </section>
+        <div class="manager-settlement-total">
+          <div>
+            <span>TELJES ELSZÁMOLÁS</span>
+            <strong id="manager-settlement-total">0,00 RSD</strong>
+          </div>
+          <p class="daily-flow-result" id="daily-flow-result" aria-live="polite">Add meg a napi folyam összegét.</p>
+        </div>
+      </section>
+      <div class="accounting-list" id="accounting-list"></div>
+
+      <section class="settlement-summary" aria-label="Elszámolási összesítő">
+        <div class="summary-selected">KIVÁLASZTOTT MEGRENDELÉSEK: <strong id="selected-order-count">0</strong></div>
+        <div class="summary-income-grid">
+          <div class="summary-card summary-card-total">
+            <span>ÖSSZES</span>
+            <strong id="summary-total">0,00 RSD</strong>
+          </div>
+          <div class="summary-card summary-card-black">
+            <span>● FEKETE</span>
+            <strong id="summary-black">0,00 RSD</strong>
+          </div>
+          <div class="summary-card summary-card-white">
+            <span>● FEHÉR</span>
+            <strong id="summary-white">0,00 RSD</strong>
+          </div>
+        </div>
+
+        <div class="expenses-panel">
+          <h3>⊕ KÖLTSÉGEK</h3>
+          <form class="expense-form" id="expense-form" novalidate>
+            <input name="name" type="text" placeholder="Költség neve" required>
+            <input name="amount" type="number" min="0" step="0.01" placeholder="Összeg" required>
+            <button class="expense-submit" type="submit">HOZZÁADÁS</button>
+          </form>
+          <div class="expense-list" id="expense-list"></div>
+          <div class="summary-income-grid summary-net-grid">
+            <div class="summary-card summary-card-total">
+              <span>BEVÉTEL ÖSSZESEN</span>
+              <strong id="summary-net-total">0,00 RSD</strong>
+            </div>
+            <div class="summary-card summary-card-black">
+              <span>■ FEKETE - KÖLTSÉGEK</span>
+              <strong id="summary-net-black">0,00 RSD</strong>
+            </div>
+            <div class="summary-card summary-card-white">
+              <span>■ ÖSSZES - KÖLTSÉGEK</span>
+              <strong id="summary-net-after-expenses">0,00 RSD</strong>
+            </div>
+          </div>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/supabase-config.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
