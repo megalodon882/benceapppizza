@@ -695,6 +695,8 @@ body:has(.app-panel:not([hidden])) {
 
 .role-option input {
   position: absolute;
+  width: 1px;
+  height: 1px;
   opacity: 0;
   pointer-events: none;
 }
@@ -739,6 +741,8 @@ body:has(.app-panel:not([hidden])) {
 
 .color-option input {
   position: absolute;
+  width: 1px;
+  height: 1px;
   opacity: 0;
   pointer-events: none;
 }
