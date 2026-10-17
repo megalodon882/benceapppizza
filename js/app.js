@@ -124,7 +124,7 @@ function setMode(mode) {
 async function loadUserData(user) {
   const [{ data: profile, error: profileError }, { data: addressRows, error: addressError }, { data: orderRows, error: orderError }, { data: courierRows, error: courierError }] = await Promise.all([
     supabaseClient.from('profiles').select('id, username, role, requested_role').eq('id', user.id).single(),
-    supabaseClient.from('addresses').select('id, address, phone, created_at').order('created_at', { ascending: true }),
+    supabaseClient.from('addresses').select('id, address, phone, created_at, updated_at').order('updated_at', { ascending: false }),
     supabaseClient.from('orders').select('*').order('created_at', { ascending: false }),
     supabaseClient.from('profiles').select('id, username, role').order('username', { ascending: true }),
   ]);
@@ -145,12 +145,15 @@ async function loadUserData(user) {
         isWorking: previousCourier?.isWorking ?? true,
       };
     }));
-  savedAddresses.splice(0, savedAddresses.length, ...addressRows.map((address) => ({
-    id: address.id,
-    key: normalizeAddress(address.address),
-    address: address.address,
-    phone: address.phone || '',
-  })));
+  savedAddresses.splice(0, savedAddresses.length, ...addressRows
+    .map((address) => ({
+      id: address.id,
+      key: normalizeAddress(address.address),
+      address: address.address,
+      phone: address.phone || '',
+      createdAt: new Date(address.updated_at || address.created_at).getTime(),
+    }))
+    .sort((first, second) => second.createdAt - first.createdAt));
   orders.splice(0, orders.length, ...orderRows.map((order) => ({
     id: order.id,
     courierId: order.courier_id,
@@ -262,11 +265,20 @@ async function saveAddress(address, phone) {
     if (phone && phone !== existingAddress.phone) {
       const { error } = await supabaseClient
         .from('addresses')
-        .update({ phone })
+        .update({ phone, updated_at: new Date().toISOString() })
         .eq('id', existingAddress.id);
       if (error) throw error;
       existingAddress.phone = phone;
+    } else {
+      const { error } = await supabaseClient
+        .from('addresses')
+        .update({ updated_at: new Date().toISOString() })
+        .eq('id', existingAddress.id);
+      if (error) throw error;
     }
+    savedAddresses.splice(savedAddresses.indexOf(existingAddress), 1);
+    savedAddresses.unshift(existingAddress);
+    renderSavedAddresses();
     return existingAddress;
   }
 
@@ -282,8 +294,9 @@ async function saveAddress(address, phone) {
     key: normalizedAddress,
     address: data.address,
     phone: data.phone || '',
+    createdAt: Date.now(),
   };
-  savedAddresses.push(savedAddress);
+  savedAddresses.unshift(savedAddress);
   renderSavedAddresses();
   return savedAddress;
 }
@@ -302,7 +315,7 @@ function getVisibleOrders() {
     if (activeSort === 'address-desc') return second.address.localeCompare(first.address, 'hu');
     if (activeSort === 'price-asc') return first.price - second.price;
     if (activeSort === 'price-desc') return second.price - first.price;
-    return first.createdAt - second.createdAt;
+    return second.createdAt - first.createdAt;
   });
 }
 
