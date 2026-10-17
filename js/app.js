@@ -389,7 +389,7 @@ function renderOrders() {
     <article class="order-card">
       <div class="order-card-top">
         <strong class="order-card-address">${escapeHtml(order.address)}</strong>
-        <span class="order-color ${order.color === 'Fekete' ? 'order-color-black' : 'order-color-white'} ${order.checked ? 'is-color-editable' : ''}" ${order.checked ? `data-change-color="${order.id}"` : ''}><span class="color-dot ${order.color === 'Fekete' ? 'black-dot' : 'white-dot'}"></span> ${order.color.toUpperCase()}</span>
+        <span class="order-color ${order.color === 'Fekete' ? 'order-color-black' : 'order-color-white'} is-color-editable" data-change-color="${order.id}" role="button" tabindex="0" aria-label="Rendelés színének módosítása"><span class="color-dot ${order.color === 'Fekete' ? 'black-dot' : 'white-dot'}"></span> ${order.color.toUpperCase()}</span>
       </div>
       <p class="order-card-details">${escapeHtml(order.details || 'Nincsenek részletek')}</p>
       <div class="order-card-meta">
@@ -729,6 +729,15 @@ orderList.addEventListener('click', (event) => {
 
   event.preventDefault();
   event.stopPropagation();
+  openColorChangeModal(changeColorButton.dataset.changeColor);
+});
+
+orderList.addEventListener('keydown', (event) => {
+  if (event.key !== 'Enter' && event.key !== ' ') return;
+  const changeColorButton = event.target.closest('[data-change-color]');
+  if (!changeColorButton || currentUser?.role === 'manager') return;
+
+  event.preventDefault();
   openColorChangeModal(changeColorButton.dataset.changeColor);
 });
 
