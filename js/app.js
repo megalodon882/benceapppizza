@@ -161,7 +161,7 @@ async function loadUserData(user) {
       createdAt: new Date(address.updated_at || address.created_at).getTime(),
     }))
     .sort((first, second) => second.createdAt - first.createdAt));
-  orders.splice(0, orders.length, ...orderRows.map((order) => ({
+  const nextOrders = orderRows.map((order) => ({
     id: order.id,
     courierId: order.courier_id,
     address: order.address_snapshot,
@@ -172,17 +172,35 @@ async function loadUserData(user) {
     status: order.status,
     checked: order.checked === true,
     createdAt: new Date(order.created_at),
-  })));
+  }));
+  const ordersChanged = nextOrders.length !== orders.length
+    || nextOrders.some((nextOrder, index) => {
+      const currentOrder = orders[index];
+      return !currentOrder
+        || currentOrder.id !== nextOrder.id
+        || currentOrder.checked !== nextOrder.checked
+        || currentOrder.status !== nextOrder.status
+        || currentOrder.color !== nextOrder.color
+        || currentOrder.price !== nextOrder.price
+        || currentOrder.address !== nextOrder.address
+        || currentOrder.phone !== nextOrder.phone
+        || currentOrder.details !== nextOrder.details;
+    });
+  orders.splice(0, orders.length, ...nextOrders);
 
   renderSavedAddresses();
-  renderOrders();
-  renderAccounting();
+  if (ordersChanged || appPanel.hidden) {
+    renderOrders();
+    renderAccounting();
+  }
 
-  accountingList.scrollTop = accountingViewport.listTop;
-  window.scrollTo(accountingViewport.pageX, accountingViewport.pageY);
-  if (accountingViewport.orderId) {
-    const refreshedCheckbox = accountingList.querySelector(`[data-complete-order="${accountingViewport.orderId}"]`);
-    refreshedCheckbox?.focus({ preventScroll: true });
+  if (ordersChanged || appPanel.hidden) {
+    accountingList.scrollTop = accountingViewport.listTop;
+    window.scrollTo(accountingViewport.pageX, accountingViewport.pageY);
+    if (accountingViewport.orderId) {
+      const refreshedCheckbox = accountingList.querySelector(`[data-complete-order="${accountingViewport.orderId}"]`);
+      refreshedCheckbox?.focus({ preventScroll: true });
+    }
   }
 }
 
