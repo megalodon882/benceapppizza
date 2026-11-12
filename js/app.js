@@ -179,23 +179,30 @@ async function loadUserData(user) {
       const currentOrder = orders[index];
       return !currentOrder
         || currentOrder.id !== nextOrder.id
-        || currentOrder.checked !== nextOrder.checked
-        || currentOrder.status !== nextOrder.status
         || currentOrder.color !== nextOrder.color
         || currentOrder.price !== nextOrder.price
         || currentOrder.address !== nextOrder.address
         || currentOrder.phone !== nextOrder.phone
         || currentOrder.details !== nextOrder.details;
     });
+  const orderStateChanged = nextOrders.length !== orders.length
+    || nextOrders.some((nextOrder, index) => {
+      const currentOrder = orders[index];
+      return !currentOrder
+        || currentOrder.id !== nextOrder.id
+        || currentOrder.checked !== nextOrder.checked
+        || currentOrder.status !== nextOrder.status;
+    });
   orders.splice(0, orders.length, ...nextOrders);
 
   renderSavedAddresses();
-  if (ordersChanged || appPanel.hidden) {
+  const shouldRenderOrders = ordersChanged || appPanel.hidden || (!activeAccountingCheckbox && orderStateChanged);
+  if (shouldRenderOrders) {
     renderOrders();
     renderAccounting();
   }
 
-  if (ordersChanged || appPanel.hidden) {
+  if (shouldRenderOrders) {
     const restoreAccountingViewport = () => {
       accountingList.scrollTop = accountingViewport.listTop;
       const refreshedCheckbox = accountingViewport.orderId
