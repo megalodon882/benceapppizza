@@ -128,6 +128,7 @@ async function loadUserData(user) {
     pageY: window.scrollY,
     listTop: accountingList.scrollTop,
     orderId: activeAccountingCheckbox?.dataset.completeOrder || null,
+    anchorTop: activeAccountingCheckbox?.closest('.accounting-order')?.getBoundingClientRect().top ?? null,
   };
   const [{ data: profile, error: profileError }, { data: addressRows, error: addressError }, { data: orderRows, error: orderError }, { data: courierRows, error: courierError }] = await Promise.all([
     supabaseClient.from('profiles').select('id, username, role, requested_role').eq('id', user.id).single(),
@@ -195,12 +196,26 @@ async function loadUserData(user) {
   }
 
   if (ordersChanged || appPanel.hidden) {
-    accountingList.scrollTop = accountingViewport.listTop;
-    window.scrollTo(accountingViewport.pageX, accountingViewport.pageY);
-    if (accountingViewport.orderId) {
-      const refreshedCheckbox = accountingList.querySelector(`[data-complete-order="${accountingViewport.orderId}"]`);
-      refreshedCheckbox?.focus({ preventScroll: true });
-    }
+    const restoreAccountingViewport = () => {
+      accountingList.scrollTop = accountingViewport.listTop;
+      const refreshedCheckbox = accountingViewport.orderId
+        ? accountingList.querySelector(`[data-complete-order="${accountingViewport.orderId}"]`)
+        : null;
+      const refreshedOrder = refreshedCheckbox?.closest('.accounting-order');
+
+      if (refreshedOrder && accountingViewport.anchorTop !== null) {
+        window.scrollBy(0, refreshedOrder.getBoundingClientRect().top - accountingViewport.anchorTop);
+        refreshedCheckbox.focus({ preventScroll: true });
+        return;
+      }
+
+      window.scrollTo(accountingViewport.pageX, accountingViewport.pageY);
+    };
+
+    window.requestAnimationFrame(() => {
+      restoreAccountingViewport();
+      window.requestAnimationFrame(restoreAccountingViewport);
+    });
   }
 }
 
