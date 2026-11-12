@@ -734,7 +734,18 @@ accountingList.addEventListener('change', async (event) => {
     return;
   }
 
-  await loadUserData({ id: currentUser.id });
+  const order = orders.find((item) => item.id === checkbox.dataset.completeOrder);
+  if (order) {
+    order.checked = checkbox.checked;
+    order.status = nextStatus;
+  }
+  const deliveryCheck = checkbox.closest('.delivery-check');
+  deliveryCheck.classList.toggle('is-checked', checkbox.checked);
+  deliveryCheck.setAttribute('aria-label', checkbox.checked ? 'Kiszállítva' : 'Nincs kiszállítva');
+  deliveryCheck.querySelector('.checkmark').textContent = checkbox.checked ? '✓' : '✕';
+  deliveryCheck.closest('.accounting-order').classList.toggle('is-completed', checkbox.checked);
+  checkbox.disabled = false;
+  renderSettlementSummary();
 });
 
 orderList.addEventListener('click', (event) => {
