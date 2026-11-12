@@ -122,6 +122,13 @@ function setMode(mode) {
 }
 
 async function loadUserData(user) {
+  const activeAccountingCheckbox = document.activeElement?.closest?.('[data-complete-order]');
+  const accountingViewport = {
+    pageX: window.scrollX,
+    pageY: window.scrollY,
+    listTop: accountingList.scrollTop,
+    orderId: activeAccountingCheckbox?.dataset.completeOrder || null,
+  };
   const [{ data: profile, error: profileError }, { data: addressRows, error: addressError }, { data: orderRows, error: orderError }, { data: courierRows, error: courierError }] = await Promise.all([
     supabaseClient.from('profiles').select('id, username, role, requested_role').eq('id', user.id).single(),
     supabaseClient.from('addresses').select('id, address, phone, created_at, updated_at').order('updated_at', { ascending: false }),
@@ -170,6 +177,13 @@ async function loadUserData(user) {
   renderSavedAddresses();
   renderOrders();
   renderAccounting();
+
+  accountingList.scrollTop = accountingViewport.listTop;
+  window.scrollTo(accountingViewport.pageX, accountingViewport.pageY);
+  if (accountingViewport.orderId) {
+    const refreshedCheckbox = accountingList.querySelector(`[data-complete-order="${accountingViewport.orderId}"]`);
+    refreshedCheckbox?.focus({ preventScroll: true });
+  }
 }
 
 function openApp() {
