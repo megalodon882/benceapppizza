@@ -71,12 +71,14 @@ const summaryNetTotal = document.querySelector('#summary-net-total');
 const summaryNetBlack = document.querySelector('#summary-net-black');
 const summaryNetAfterExpenses = document.querySelector('#summary-net-after-expenses');
 const expensesPanel = document.querySelector('.expenses-panel');
+const confirmAccountingButton = document.querySelector('#confirm-accounting-button');
 
 const orders = [];
 const savedAddresses = [];
 const couriers = [];
 const manualWorkers = [];
 const expenses = [];
+const pendingOrderChecks = new Map();
 let currentUser = null;
 let ordersChannel = null;
 let ordersRefreshInterval = null;
@@ -490,18 +492,23 @@ function renderAccounting() {
     return;
   }
 
-  accountingList.innerHTML = accountingOrders.map((order) => `
-    <article class="accounting-order ${order.checked ? 'is-completed' : ''}">
+  accountingList.innerHTML = accountingOrders.map((order) => {
+    const checked = pendingOrderChecks.has(order.id) ? pendingOrderChecks.get(order.id) : order.checked;
+    const pending = pendingOrderChecks.has(order.id);
+    return `
+    <article class="accounting-order ${checked ? 'is-completed' : ''} ${pending ? 'is-pending' : ''}">
       <div>
         <strong class="accounting-address">${escapeHtml(order.address)}</strong>
         <span class="accounting-meta"><strong class="accounting-price">${formatPrice(order.price)}</strong><span class="order-color ${order.color === 'Fekete' ? 'order-color-black' : 'order-color-white'}"><span class="color-dot ${order.color === 'Fekete' ? 'black-dot' : 'white-dot'}"></span> ${order.color.toUpperCase()}</span></span>
       </div>
-      <label class="delivery-check ${order.checked ? 'is-checked' : ''}" aria-label="${order.checked ? 'Kiszállítva' : 'Nincs kiszállítva'}">
-        <input type="checkbox" data-complete-order="${order.id}" ${order.checked ? 'checked' : ''} ${isManager ? 'disabled' : ''}>
-        <span class="checkmark" aria-hidden="true">${order.checked ? '✓' : '✕'}</span>
+      <label class="delivery-check ${checked ? 'is-checked' : ''}" aria-label="${checked ? 'Kiszállítva' : 'Nincs kiszállítva'}">
+        <input type="checkbox" data-complete-order="${order.id}" ${checked ? 'checked' : ''} ${isManager ? 'disabled' : ''}>
+        <span class="checkmark" aria-hidden="true">${checked ? '✓' : '✕'}</span>
       </label>
     </article>
-  `).join('');
+  `;
+  }).join('');
+  updateConfirmAccountingButton();
 }
 
 function renderManagerSettlement() {
@@ -564,7 +571,9 @@ function updateDailyFlow(settlementTotal) {
 }
 
 function renderSettlementSummary() {
-  const checkedOrders = orders.filter((order) => order.checked);
+  const checkedOrders = orders.filter((order) => pendingOrderChecks.has(order.id)
+    ? pendingOrderChecks.get(order.id)
+    : order.checked);
   const blackIncome = checkedOrders
     .filter((order) => order.color === 'Fekete')
     .reduce((sum, order) => sum + order.price, 0);
@@ -581,6 +590,7 @@ function renderSettlementSummary() {
   summaryNetBlack.textContent = formatPrice(blackIncome - totalExpenses);
   summaryNetTotal.textContent = formatPrice(totalIncome - totalExpenses);
   summaryNetAfterExpenses.textContent = formatPrice(totalIncome - totalExpenses);
+  updateConfirmAccountingButton();
 
   expenseList.innerHTML = expenses.length === 0
     ? '<p class="empty-state">Nincsenek költségek</p>'
@@ -590,6 +600,14 @@ function renderSettlementSummary() {
         <strong>${formatPrice(expense.amount)}</strong>
       </div>
     `).join('');
+}
+
+function updateConfirmAccountingButton() {
+  const pendingCount = pendingOrderChecks.size;
+  confirmAccountingButton.disabled = pendingCount === 0;
+  confirmAccountingButton.textContent = pendingCount === 0
+    ? 'VÁLTOZÁSOK MEGERŐSÍTÉSE'
+    : `VÁLTOZÁSOK MEGERŐSÍTÉSE (${pendingCount})`;
 }
 
 function escapeHtml(value) {
@@ -759,33 +777,58 @@ accountingList.addEventListener('change', async (event) => {
   const checkbox = event.target.closest('[data-complete-order]');
   if (!checkbox || currentUser?.role === 'manager') return;
 
-  checkbox.disabled = true;
-  const nextStatus = checkbox.checked ? 'completed' : 'active';
-  const { error } = await supabaseClient
-    .from('orders')
-    .update({ status: nextStatus, checked: checkbox.checked })
-    .eq('id', checkbox.dataset.completeOrder)
-    .eq('courier_id', currentUser.id);
-
-  if (error) {
-    checkbox.checked = !checkbox.checked;
-    checkbox.disabled = false;
-    feedback.textContent = error.message || 'A rendelés állapotának mentése nem sikerült.';
-    return;
-  }
-
   const order = orders.find((item) => item.id === checkbox.dataset.completeOrder);
-  if (order) {
-    order.checked = checkbox.checked;
-    order.status = nextStatus;
+  if (!order) return;
+
+  if (checkbox.checked === order.checked) {
+    pendingOrderChecks.delete(order.id);
+  } else {
+    pendingOrderChecks.set(order.id, checkbox.checked);
   }
+
   const deliveryCheck = checkbox.closest('.delivery-check');
+  const accountingOrder = deliveryCheck.closest('.accounting-order');
+  const pending = pendingOrderChecks.has(order.id);
   deliveryCheck.classList.toggle('is-checked', checkbox.checked);
   deliveryCheck.setAttribute('aria-label', checkbox.checked ? 'Kiszállítva' : 'Nincs kiszállítva');
   deliveryCheck.querySelector('.checkmark').textContent = checkbox.checked ? '✓' : '✕';
-  deliveryCheck.closest('.accounting-order').classList.toggle('is-completed', checkbox.checked);
-  checkbox.disabled = false;
+  accountingOrder.classList.toggle('is-completed', checkbox.checked);
+  accountingOrder.classList.toggle('is-pending', pending);
   renderSettlementSummary();
+});
+
+confirmAccountingButton.addEventListener('click', async () => {
+  if (pendingOrderChecks.size === 0 || !currentUser) return;
+
+  confirmAccountingButton.disabled = true;
+  const pendingChanges = [...pendingOrderChecks.entries()];
+  const results = await Promise.all(pendingChanges.map(([orderId, checked]) => supabaseClient
+    .from('orders')
+    .update({ status: checked ? 'completed' : 'active', checked })
+    .eq('id', orderId)
+    .eq('courier_id', currentUser.id)));
+  const failedResult = results.find((result) => result.error);
+
+  if (failedResult) {
+    confirmAccountingButton.disabled = false;
+    showToast(failedResult.error.message || 'Az elszámolási változások mentése nem sikerült.', 'error');
+    updateConfirmAccountingButton();
+    return;
+  }
+
+  pendingChanges.forEach(([orderId, checked]) => {
+    const order = orders.find((item) => item.id === orderId);
+    if (order) {
+      order.checked = checked;
+      order.status = checked ? 'completed' : 'active';
+    }
+    pendingOrderChecks.delete(orderId);
+    const checkbox = accountingList.querySelector(`[data-complete-order="${orderId}"]`);
+    const accountingOrder = checkbox?.closest('.accounting-order');
+    accountingOrder?.classList.remove('is-pending');
+  });
+  renderSettlementSummary();
+  showToast('Az elszámolási változások mentve.', 'success');
 });
 
 orderList.addEventListener('click', (event) => {

@@ -1337,6 +1337,10 @@ body:has(.app-panel:not([hidden])) {
 }
 
 .summary-selected {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
   padding: 14px;
   border: 1px solid #4d1932;
   border-radius: 3px;
@@ -1543,6 +1547,17 @@ body:has(.app-panel:not([hidden])) {
   opacity: 0.78;
 }
 
+.accounting-order.is-pending {
+  border-left-color: #91d6aa;
+  background: rgb(145 214 170 / 12%);
+}
+
+.accounting-order.is-pending .checkmark {
+  border-color: #91d6aa;
+  background: #4b8060;
+  box-shadow: 0 0 16px rgb(145 214 170 / 28%);
+}
+
 .delivery-check {
   display: inline-flex;
   align-items: center;
@@ -1577,6 +1592,25 @@ body:has(.app-panel:not([hidden])) {
   border-color: #43e58a;
   color: #fff;
   box-shadow: 0 0 16px rgb(53 223 126 / 42%);
+}
+
+.confirm-accounting-button {
+  border: 1px solid #43e58a;
+  border-radius: 2px;
+  padding: 9px 12px;
+  background: #197a43;
+  color: #fff;
+  font: inherit;
+  font-size: 0.65rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.confirm-accounting-button:disabled {
+  border-color: #345b46;
+  background: #1d3025;
+  color: #70917b;
+  cursor: not-allowed;
 }
 
 .checkmark.is-color-editable {
